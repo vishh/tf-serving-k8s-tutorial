@@ -58,7 +58,7 @@ def main():
       '--model',
       type=str,
       default='resnet',
-      help='Paths (local or url) to images you would like to label'
+      help='Model name'
   )
   parser.add_argument(
       '-d',
@@ -88,6 +88,7 @@ def main():
 
   # Convert image paths/urls to a batch of jpegs
   jpeg_batch = preprocess_and_encode_images(images, args.dim)
+
 
   # Call the server to predict top 5 classes and probabilities, and time taken
   result, elapsed = predict_and_profile(
@@ -135,19 +136,14 @@ def predict_and_profile(host, port, model, batch):
   # preferred signature. If you used a different signature when creating the
   # servable model, be sure to change the line below.
   request.model_spec.signature_name = 'predict'  # TODO: change if necessary
-
-  request.inputs['images'].CopyFrom(
-      tf.contrib.util.make_tensor_proto(
-          batch,
-          shape=[len(batch)],
-          dtype=tf.string
-      )
-  )
-
+  request.inputs['input'].CopyFrom(
+    tf.contrib.util.make_tensor_proto(batch, shape=[len(batch)]))
   # Call the server to predict, return the result, and compute round trip time
   start_time = int(round(time.time() * 1000))
   result = stub.Predict(request, 60.0)  # 60 second timeout
   elapsed = int(round(time.time() * 1000)) - start_time
+
+
 
   return result, elapsed
 
