@@ -3,6 +3,7 @@ import numpy as np
 import urllib
 import urllib2
 import tensorflow as tf
+import matplotlib.image as mpimg
 
 def resize_and_pad_image(img, output_image_dim):
   """Resize the image to make it IMAGE_DIM x IMAGE_DIM pixels in size.
@@ -83,12 +84,7 @@ def preprocess_and_encode_images(image_paths, output_image_dim):
       feature = np.asarray(bytearray(resp.read()), dtype='uint8')
       feature = cv2.imdecode(feature, cv2.IMREAD_COLOR)
     else:
-      feature = cv2.imread(image_path)  # Parse the image from your local disk.
-    print(type(feature))  
-    # Resize and pad the image
-    feature = resize_and_pad_image(feature, output_image_dim)
-    # Append to features_array
-    jpeg_image = cv2.imencode('.jpg', feature)[1]
-    jpeg_batch.append(jpeg_image)
+      with open(image_path, 'rb') as f:
+        jpeg_batch.append(f.read())
 
   return jpeg_batch

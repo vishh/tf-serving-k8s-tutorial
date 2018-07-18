@@ -57,7 +57,7 @@ def main():
       '-m',
       '--model',
       type=str,
-      default='resnet',
+      default='inception',
       help='Model name'
   )
   parser.add_argument(
@@ -89,39 +89,40 @@ def main():
   # Convert image paths/urls to a batch of jpegs
   jpeg_batch = preprocess_and_encode_images(images, args.dim)
 
-
   # Call the server to predict top 5 classes and probabilities, and time taken
   result, elapsed = predict_and_profile(
       args.server, args.port, args.model, jpeg_batch)
-
+  print(result)
   # Parse server message and print formatted results
-  json_result = json.loads(json_format.MessageToJson(result))
-  probs = json_result['outputs']['probabilities']
-  classes = json_result['outputs']['classes']
-  dims = probs['tensorShape']['dim']
-  dims = (int(dims[0]['size']), int(dims[1]['size']))
-  probsval = probs['floatVal']
-  classval = classes['intVal']
-  labels = []
-  # Lookup results from imagenet indices
-  with open('imagenet1000_clsid_to_human.txt', 'r') as f:
-    label_reader = csv.reader(f, delimiter=':', quotechar='\'')
-    for row in label_reader:
-      labels.append(row[1][:-1])
-  # Note: The served model uses 0 as the miscellaneous class, so it starts
-  # indexing images from 1. Subtract 1 to reference the dict file correctly.
-  if args.model_type.lower() == 'estimator':
-    classval = [labels[x - 1] for x in classval]
-  elif args.model_type.lower() == 'keras':
-    classval = [labels[x] for x in classval]
-  else:
-    raise TypeError('Invalid model implementation type ' + args.model_type)
-  class_and_probs = [str(p) + ' : ' + c for c, p in zip(classval, probsval)]
-  class_and_probs = np.reshape(class_and_probs, dims)
-  for i in range(0, len(images)):
-    print('Image: ' + images[i])
-    for j in range(0, 5):
-      print(class_and_probs[i][j])
+  # json_result = json.loads(json_format.MessageToJson(result))
+  # probs = json_result['outputs']['scores']
+  # classes = json_result['outputs']['classes']
+  # print(json_result)
+  # print(probs)
+  # dims = probs['tensorShape']['dim']
+  # dims = (int(dims[0]['size']), int(dims[1]['size']))
+  # probsval = probs['floatVal']
+  # classval = classes['intVal']
+  # labels = []
+  # # Lookup results from imagenet indices
+  # with open('imagenet1000_clsid_to_human.txt', 'r') as f:
+  #   label_reader = csv.reader(f, delimiter=':', quotechar='\'')
+  #   for row in label_reader:
+  #     labels.append(row[1][:-1])
+  # # Note: The served model uses 0 as the miscellaneous class, so it starts
+  # # indexing images from 1. Subtract 1 to reference the dict file correctly.
+  # if args.model_type.lower() == 'estimator':
+  #   classval = [labels[x - 1] for x in classval]
+  # elif args.model_type.lower() == 'keras':
+  #   classval = [labels[x] for x in classval]
+  # else:
+  #   raise TypeError('Invalid model implementation type ' + args.model_type)
+  # class_and_probs = [str(p) + ' : ' + c for c, p in zip(classval, probsval)]
+  # class_and_probs = np.reshape(class_and_probs, dims)
+  # for i in range(0, len(images)):
+  #   print('Image: ' + images[i])
+  #   for j in range(0, 5):
+  #     print(class_and_probs[i][j])
 
 
 def predict_and_profile(host, port, model, batch):
@@ -130,21 +131,16 @@ def predict_and_profile(host, port, model, batch):
   channel = implementations.insecure_channel(host, int(port))
   stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
   request = predict_pb2.PredictRequest()
-  request.model_spec.name = model
+  request.model_spec.name = 'inception'
+  request.model_spec.signature_name = 'predict_images'
 
-  # 'predict' is the default signature used for canned estimators and the
-  # preferred signature. If you used a different signature when creating the
-  # servable model, be sure to change the line below.
-  request.model_spec.signature_name = 'predict'  # TODO: change if necessary
-  request.inputs['input'].CopyFrom(
-    tf.contrib.util.make_tensor_proto(batch, shape=[len(batch)]))
+  request.inputs['images'].CopyFrom(
+    tf.contrib.util.make_tensor_proto(batch[0], shape=[1]))
   # Call the server to predict, return the result, and compute round trip time
   start_time = int(round(time.time() * 1000))
-  result = stub.Predict(request, 60.0)  # 60 second timeout
+  result = stub.Predict(request, 10.0)  # 60 second timeout
   elapsed = int(round(time.time() * 1000)) - start_time
-
-
-
+  print(result)
   return result, elapsed
 
 if __name__ == '__main__':
