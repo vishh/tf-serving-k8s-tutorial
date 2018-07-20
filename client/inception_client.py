@@ -104,18 +104,12 @@ def predict_and_profile(host, port, model, batch):
   request = predict_pb2.PredictRequest()
   request.model_spec.name = 'inception'
   request.model_spec.signature_name = 'predict_images'
-  #try:
-  result = stub.GetModelMetadata(mreq, 10.0)
-  print(result)
- # except:
-    #print("model not ready yet")
   request.inputs['images'].CopyFrom(
     tf.contrib.util.make_tensor_proto(batch[0], shape=[1]))
   # Call the server to predict, return the result, and compute round trip time
   start_time = int(round(time.time() * 1000))
   result = stub.Predict(request, 10.0)  # 60 second timeout
   elapsed = int(round(time.time() * 1000)) - start_time
-  print(result)
   return result, elapsed
 
 if __name__ == '__main__':

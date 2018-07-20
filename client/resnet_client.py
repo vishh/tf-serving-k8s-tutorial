@@ -70,7 +70,9 @@ def main():
   images = args.images
   for image in images:
     # Each image needs to be 224x224x3 for ResNet.
-    data = np.array(Image.open(image).resize((224, 224))).astype(np.float).reshape(-1, 224, 224, 3)
+    imdata = Image.open(image).resize((224, 224))
+    data = np.array(imdata).astype(np.float).reshape(-1, 224, 224, 3)
+    print(len(data))
     np.set_printoptions(threshold=np.inf)                                                                                 
     json_request = '{{ "instances" : {} }}'.format(np.array2string(data, separator=',', formatter={'float':lambda x: "%.1f" % x}))
     url = "http://%s:%d/v1/models/%s:predict" %(args.server, args.port, args.model)

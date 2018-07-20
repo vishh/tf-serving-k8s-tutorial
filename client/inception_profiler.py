@@ -29,7 +29,7 @@ import argparse
 import numpy as np
 
 from image_processing import preprocess_and_encode_images
-from resnet_client import predict_and_profile
+from inception_client import predict_and_profile
 
 
 def main():
